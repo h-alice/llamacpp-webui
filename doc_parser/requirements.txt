@@ -1,0 +1,14 @@
+requests
+PyYAML
+huggingface-hub
+PyPDF2
+langchain
+streamlit
+text_generation
+faiss-cpu 
+tiktoken
+docx2txt
+networkx
+openpyxl
+python-pptx
+odfpy

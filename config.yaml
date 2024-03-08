@@ -1,0 +1,7 @@
+llm_models:
+  - provider: llama-cpp
+    path: "/Users/h-alice/Desktop/gemma-2b-it-q4.gguf"
+embedding_model:
+    provider: huggingface
+    endpoint: http://127.0.0.1:15820
+document-folder: "doc"
