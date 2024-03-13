@@ -55,14 +55,14 @@ class UiConfig:
             self.embedding_model = EmbeddingModelConfig.new_embedding_config(_embedding_model_config)
         
         # Initialize llm_models attribute as an empty list.
-        self.llm_models: List[LlmModelConfig] = []
+        self.llm_models: LlmModelConfig
 
         # Get LLM models configurations from the input dictionary.
         _llm_config = config.get("llm_models", [])
 
         # Loop through each LLM configuration and create LlmModelConfig instances.
         for _llm in _llm_config:
-            self.llm_models.append(LlmModelConfig.new_llm_config(_llm))
+            self.llm_models = LlmModelConfig.new_llm_config(_llm)
 
         self.document_folder: str = config.get("document-folder", "doc")
         

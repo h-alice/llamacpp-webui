@@ -96,7 +96,7 @@ def main_ui_logic(config: UiConfig, llm_instance: LLM) -> None:
     if user_input := st.chat_input("How can I help you today?"):
 
         # TODO: User model selection.
-        llm_model_conf = config.llm_models[0]
+        llm_model_conf = config.llm_models
         embedding_conf = config.embedding_model
 
         llm_param = LlmGenerationParameters.new_generation_parameter(
@@ -143,8 +143,8 @@ def main_ui_logic(config: UiConfig, llm_instance: LLM) -> None:
         # TODO: Append history to prompt.
         #prompt = "".join(st.session_state.history) + prompt
         # Simulating bot typing.
-        for response in llm_stream_result(llm_instance, prompt, llm_model_conf, llm_param):
-            if "undertale" in prompt.lower():
+        for response in llm_stream_result(llm_instance, prompt, llm_model_conf, llm_param): # type: ignore
+            if "undertale" in prompt.lower():  # type: ignore
                 cursor = "❤️"
             else:
                 cursor = "❖"
@@ -166,9 +166,9 @@ if __name__ == "__main__":
         config = UiConfig.load_config_from_file(f)
 
     # Load LLM model.
-    if config.llm_models[0].provider == "llama-cpp":
+    if config.llm_models.provider == "llama-cpp":
         llm_instance = LlamaCpp(
-            model_path=config.llm_models[0].model_path,
+            model_path=config.llm_models.model_path,
             verbose=False,
         )
     else: raise NotImplementedError("Might implement sometime lol.")

@@ -1,7 +1,7 @@
 """
 LLM Connector
 """
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Iterator
 from langchain_core.documents.base import Document
 from langchain_core.language_models.llms import LLM
 
@@ -63,7 +63,7 @@ class LlmGenerationParameters(NamedTuple):
                    repetition_penalty=repetition_penalty)
 
 #
-def llm_stream_result(llm: LLM, prompt: str, llm_model: LlmModelConfig, llm_parameter: LlmGenerationParameters) -> str:  
+def llm_stream_result(llm: LLM, prompt: str, llm_model: LlmModelConfig, llm_parameter: LlmGenerationParameters) -> Iterator[str]:  
     return llm.stream(
         prompt,
         top_k=llm_parameter.top_k,
