@@ -104,7 +104,7 @@ def main_ui_logic(config: UiConfig, llm_instance: LLM) -> None:
             top_p=model_topp,
             temperature=model_temperature,
             repetition_penalty=model_repetition_penalty,
-            max_new_tokens=4096,
+            max_new_tokens=8192,
         )
 
         rag_param = RagParameters.new_rag_parameter(
@@ -154,7 +154,6 @@ def main_ui_logic(config: UiConfig, llm_instance: LLM) -> None:
         # While complete, display full bot response.
         message_placeholder.markdown(full_response)
         full_response_with_prompt = craft_result_with_prompt(user_input, full_response)
-        print(full_response_with_prompt)
 
         # Add assistant response to chat history
         st.session_state.history.append(full_response_with_prompt)
