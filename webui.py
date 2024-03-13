@@ -53,39 +53,13 @@ def main_ui_logic(config: UiConfig, llm_instance: LLM) -> None:
             st.markdown("Top P: 從機率總和為 P 的字中選擇")
             st.markdown("Temperature: 生成時的亂度")
             st.markdown("Repetition Penalty: 重複字的懲罰")
-            st.markdown("### RAG Settings")
-            st.markdown("Chunk Size: 文章分割的大小")
-            st.markdown("Chunk Overlap: 文章分割的重疊大小")
-            st.markdown("Top K: 保留機率最高的前 K 個文章")
+
 
         st.markdown("### LLM Generation Parameter")
         model_topk = st.slider("Top K", 0, 200, 10, key="model_topk")
         model_topp = st.slider("Top P", 0.0, 1.0, 0.9, key="model_topp")
-        model_temperature = st.slider("Temperature", 0.0, 1.0, 0.01, key="model_temperature")
-        model_repetition_penalty = st.slider("Repetition Penalty", 0.0, 2.0, 1.10, key="model_repetition_penalty")
-
-        # TODO: Refactor, extract document processing logic.
-        st.markdown("### RAG Settings")
-        rag_chunk_size = st.slider("Chunk Size", 0, 500, 100, key="rag_chunk_size")
-        rag_chunk_overlap = st.slider("Chunk Overlap", 0, 100, 25, key="rag_chunk_overlap")
-        rag_topk = st.slider("Top K", 0, 100, 3, key="rag_topk")
-
-
-    # File upload interface
-    with st.expander("文件上傳"):
-        uploaded_files = st.file_uploader("Choose a file", accept_multiple_files=True)
-
-        if uploaded_files is not None:
-
-            all_document_full_names = []
-            for _file in uploaded_files:
-                file_full_name = f"{st.session_state.session_id}-{_file.name}"  # Create file name.
-                bytes_data = _file.getvalue() # Get raw data.
-                doc_output = document_folder / file_full_name # Destination file.
-                doc_output.write_bytes(bytes_data) # Write file to document folder.
-                all_document_full_names.append(doc_output.absolute()) # Append current file to list.
-
-            st.session_state.documents = all_document_full_names
+        model_temperature = st.slider("Temperature", 0.0, 1.0, 0.75, key="model_temperature")
+        model_repetition_penalty = st.slider("Repetition Penalty", 0.0, 2.0, 1.00, key="model_repetition_penalty")
 
     # Display chat messages from history on app rerun
     for message in st.session_state.messages:
@@ -107,11 +81,7 @@ def main_ui_logic(config: UiConfig, llm_instance: LLM) -> None:
             max_new_tokens=8192,
         )
 
-        rag_param = RagParameters.new_rag_parameter(
-            chunk_size=rag_chunk_size,
-            chunk_overlap=rag_chunk_overlap,
-            top_k=rag_topk,
-        )
+
 
         # Display user message in chat message container
         st.chat_message("user").markdown(user_input)
@@ -126,17 +96,6 @@ def main_ui_logic(config: UiConfig, llm_instance: LLM) -> None:
 
         ## RAG     
         rag_docs = []
-        if st.session_state["documents"]:   # Document list is not null, invoke RAG.
-            topk_doc_score = topk_documents(user_input, embedding_conf, rag_param, st.session_state["documents"])
-            rag_docs = [x for x, _ in topk_doc_score]
-            rag_reference = ""
-            for d, score in topk_doc_score:
-                rag_reference += "```\n"
-                rag_reference += d.page_content
-                rag_reference += "\n"
-                rag_reference += "```\n"
-            with st.expander("參考文件 Referenced Document"):
-                st.markdown(rag_reference)
 
         # Prompt crafting.
         prompt = craft_prompt(user_input, rag_docs, keep_placeholder=False)
