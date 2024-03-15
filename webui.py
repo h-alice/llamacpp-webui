@@ -21,7 +21,7 @@ from document_rag_processor import topk_documents, RagParameters
 
 def main_ui_logic(config: UiConfig, llm_instance: LLM) -> None:
 
-    st.title("Chatbot Interface")
+    st.title("🎓 LLM Inference Web UI")
 
     ### Environment prepare.
     document_folder = Path(config.document_folder)
@@ -108,7 +108,12 @@ def main_ui_logic(config: UiConfig, llm_instance: LLM) -> None:
             message_placeholder.markdown(full_response + cursor)
 
         # While complete, display full bot response.
-        message_placeholder.markdown(full_response)
+        with message_placeholder.container():
+            st.markdown(full_response)
+
+        with st.expander("Raw Output"):
+            st.text_area("Raw Model Output", full_response)
+
         full_response_with_prompt = craft_result_with_prompt(user_input, full_response)
 
         # Add assistant response to chat history
