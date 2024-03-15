@@ -22,101 +22,127 @@ ${NC}
 fancy_project_title
 #
 
-# Display a warning banner if user's Python version doesn't match requirements.
 python_version_check() {
-
-    current_python_version=$(python3 --version 2>&1 | awk '{print $2}')
     required_python_version="3.11.0"
-    if [[ "$(printf "%s\n" "$required_python_version" "$current_python_version" | sort -V | head -n1)" == "$current_python_version" ]]; then
-        printf "${YELLOW}Current Python version (${current_python_version}) is smaller then required version (${required_python_version}).${NC}\n"
-        printf "${YELLOW}This project may not work as expected.${NC}\n\n"
+    current_python_version=$(python3 --version 2>&1 | awk '{print $2}')
+    if [[ "$(printf '%s\n' "$required_python_version" "$current_python_version" | sort -V | head -n1)" != "$required_python_version" ]]; then
+        printf "${YELLOW}Warning: Python version is ${current_python_version}. Expected ${required_python_version} or newer.${NC}\n"
     else
-        printf "${CYAN}Current Python version: ${YELLOW}${current_python_version} ${NC}\n"
+        printf "${GREEN}Python version ${current_python_version} meets the requirement.${NC}\n"
     fi
-    return 0
 }
 
 create_venv() {
-
     printf "${YELLOW}Creating Python virtual environment in .venv folder...${NC}\n"
-
     if python3 -m venv .venv; then
-        printf "${GREEN}Successfully created environment.${NC}\n"
-        echo "*" > .venv/.gitignore
-        return 0
+        printf "${GREEN}Virtual environment created successfully.${NC}\n"
     else
-        printf "${RED}Cannot create environment.${NC}\n"
-        return 1
-    fi
-}
-
-check_package_installation() {
-    local package_name="$1"
-    local desired_version="$2"
-
-    if python -m pip show "$package_name" &>/dev/null; then
-        
-        if [ -n "$desired_version" ]; then
-            installed_version=$(python -m pip show "$package_name" | grep Version | awk '{print $2}')
-            
-            if [ "$installed_version" == "$desired_version" ]; then
-                printf "${package_name} ${desired_version} is installed.\n"
-                return 0
-            else
-                printf "${YELLOW}Version mismatch for ${package_name}: Installed ${installed_version}, Required version: ${desired_version}\n${NC}"
-                return 1
-            fi
-        else
-            printf "${package_name} is installed.\n"
-            return 0
-        fi
-    else
-        printf "${YELLOW}${package_name} is not installed.\n"
-        return 1
-    fi
-}
-
-# Check if environment exists
-if [ -d ".venv" ]; then
-    printf "${CYAN}Existing virtual environment (.venv) found.${NC}\n"
-    
-    # Try activating the existing virtual environment
-    printf "${CYAN}Activating virtual environment...${NC}\n"
-    if source .venv/bin/activate; then
-        printf "\n"
-        python_version_check
-    else
-        printf "${RED}Failed to activate existing virtual environment. Re-creating environment.${NC}\n\n"
-        rm -rf .venv
-
-        if create_venv; then
-            source .venv/bin/activate
-            printf "\n"
-            python_version_check
-        else
-            exit 1
-        fi
-    fi
-else
-    if create_venv; then
-        source .venv/bin/activate
-        printf "\n"
-        python_version_check
-    else
+        printf "${RED}Failed to create virtual environment.${NC}\n"
         exit 1
     fi
+}
+
+activate_venv() {
+    printf "${YELLOW}Activating virtual environment...${NC}\n"
+    source .venv/bin/activate
+    if [[ $? -ne 0 ]]; then
+        printf "${RED}Failed to activate virtual environment.${NC}\n"
+        exit 1
+    else
+        printf "${GREEN}Virtual environment activated.${NC}\n"
+    fi
+}
+
+install_requirements() {
+    printf "${YELLOW}Installing requirements...${NC}\n"
+    if ! pip install --disable-pip-version-check -q -r requirements.txt; then
+        printf "${RED}Failed to install required packages.${NC}\n"
+        exit 1
+    else
+        printf "${GREEN}All required packages installed.${NC}\n"
+    fi
+}
+
+run_streamlit_webui() {
+    printf "\n${GREEN}Starting Streamlit web UI...${NC}\n"
+    if ! streamlit run webui.py --browser.gatherUsageStats False --server.address "0.0.0.0"; then
+        printf "${RED}Failed to start Streamlit web UI.${NC}\n"
+        exit 1
+    fi
+}
+
+
+# Function to install dependencies on Ubuntu
+install_ubuntu_dependencies() {
+    printf "${CYAN}Checking for required build tools on Ubuntu...${NC}\n"
+    # Update package lists to ensure accurate checks
+    sudo apt-get update
+
+    # Check if build-essential is installed
+    if ! dpkg -l | grep -qw build-essential; then
+        printf "${YELLOW}Installing build-essential...${NC}\n"
+        if ! sudo apt-get install -y build-essential; then
+            printf "${RED}Failed to install build-essential.${NC}\n"
+            exit 1
+        fi
+    else
+        printf "${GREEN}build-essential is already installed.${NC}\n"
+    fi
+
+    # Check if gcc is installed
+    if ! dpkg -l | grep -qw gcc; then
+        printf "${YELLOW}Installing gcc...${NC}\n"
+        if ! sudo apt-get install -y gcc; then
+            printf "${RED}Failed to install gcc.${NC}\n"
+            exit 1
+        fi
+    else
+        printf "${GREEN}gcc is already installed.${NC}\n"
+    fi
+}
+
+# Function to handle macOS dependencies
+install_macos_dependencies() {
+    printf "${CYAN}Checking for required build tools on macOS...${NC}\n"
+    # Xcode Command Line Tools includes gcc and make
+    if ! xcode-select -p &>/dev/null; then
+        printf "${YELLOW}Installing Xcode Command Line Tools...${NC}\n"
+        if ! xcode-select --install &>/dev/null; then
+            printf "${RED}Failed to initiate installation of Xcode Command Line Tools.${NC}\n"
+            exit 1
+        fi
+    else
+        printf "${GREEN}Xcode Command Line Tools are already installed.${NC}\n"
+    fi
+}
+
+get_os_type() {
+    OS="$(uname)"
+    case $OS in
+        Linux)
+            if [[ -f /etc/os-release && "$(grep '^ID=' /etc/os-release)" == *"ubuntu"* ]]; then
+                install_ubuntu_dependencies
+            else
+                printf "${YELLOW}Non-Ubuntu Linux detected. Please ensure build dependencies are installed.${NC}\n"
+            fi
+            ;;
+        Darwin)
+            install_macos_dependencies
+            ;;
+        *)
+            printf "${RED}Unsupported operating system: ${OS}.${NC}\n"
+            exit 1
+            ;;
+    esac
+}
+
+# Main execution starts here
+get_os_type
+python_version_check
+if [ ! -d ".venv" ]; then
+    create_venv
 fi
 
-# Install requirement.
-printf "\n${CYAN}Checking package installation...${NC}\n"
-pip install --disable-pip-version-check -q -r requirements.txt
-
-printf "\n${GREEN}Environment integrity checked, starting webui.${NC}\n"
-
-streamlit run webui.py --browser.gatherUsageStats False --server.address "0.0.0.0"
-
-
-
-
-
-
+activate_venv
+install_requirements
+run_streamlit_webui
