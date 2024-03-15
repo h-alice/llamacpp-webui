@@ -97,6 +97,14 @@ if [ -d ".venv" ]; then
             exit 1
         fi
     fi
+else
+    if create_venv; then
+        source .venv/bin/activate
+        printf "\n"
+        python_version_check
+    else
+        exit 1
+    fi
 fi
 
 # Install requirement.
